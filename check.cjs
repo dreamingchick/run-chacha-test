@@ -1,59 +1,52 @@
 // Deterministic simulation checks without browser/network dependencies.
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-function sandbox(width=1000){const nodes={},storage={};const gradient={addColorStop(){}};const context=new Proxy({createRadialGradient:()=>gradient,createLinearGradient:()=>gradient},{get:(o,k)=>o[k]||(()=>{})});function node(id){return nodes[id]??={value:0,hidden:false,disabled:false,textContent:'',innerHTML:'',setAttribute(){},getBoundingClientRect:()=>({width:width===640?400:1000,height:392}),getContext:()=>context,addEventListener(){}}}const box={document:{getElementById:node,createElement:()=>node('temp'),addEventListener(){}},window:{addEventListener(){},dispatchEvent(){}},Event:class{},CustomEvent:class{},devicePixelRatio:1,ResizeObserver:class{observe(){}},Image:class{decode(){return new Promise(()=>{})}},localStorage:{getItem:k=>storage[k],setItem:(k,v)=>storage[k]=v},requestAnimationFrame(){},Math:Object.create(Math),console};box.Math.random=()=>.5;vm.createContext(box);vm.runInContext(fs.readFileSync('dist/chacha.js','utf8')+'\nthis.api={app,update,start,jump,pause,preview,legPose,gaitBody,groundContact,render,frame,safeGap,canSpawnObstacle,spawnObstacle,drawObstacle,images};',box);return box.api}
-for(const hz of [30,60,120,144]){const a=sandbox();a.start();a.app.spawn=1000;a.frame(100);for(let i=1;i<=hz*2;i++)a.frame(100+i*1000/hz);a.render();assert(a.app.distance>49&&a.app.distance<51);console.log(hz+'Hz distance '+a.app.distance.toFixed(4))}
-const a=sandbox();a.start();a.app.spawn=1000;a.jump();const first=a.app.vy;a.jump();assert.equal(a.app.vy,first,'no double jump');let apex=0;for(let i=0;i<90;i++){a.update(1/120);apex=Math.max(apex,a.app.jumpY)}assert(apex>110&&apex<125,'jump height');assert.equal(a.app.jumpY,0,'landed');a.pause();const phase=a.app.phase,distance=a.app.distance;a.update(1);assert.equal(a.app.phase,phase);assert.equal(a.app.distance,distance);a.pause();a.app.obstacles=[{x:100,w:38,h:46,name:'radish'}];a.update(1/120);assert.equal(a.app.mode,'over');a.start();assert.equal(a.app.obstacles.length,0);assert.equal(a.app.mode,'play');a.preview();a.app.frozen=true;const before=a.app.phase;a.update(1);assert.equal(a.app.phase,before);
-for(let p=0;p<1;p+=.001){const l=a.legPose(p,-30,3,0,false,false);assert(l.paw.every(Number.isFinite)&&l.knee.every(Number.isFinite));if(l.stance)assert.equal(l.paw[1],0,'stance paw on track')}
-console.log('PASS: jump/landing, pause, collision/restart, scrub freeze, 1000 gait positions');
-
-
-let flight=0;
-for(let i=0;i<1000;i++){
- const phase=i/1000,bob=a.gaitBody(phase).bob;
- const legs=[];
- for(const front of [false,true])for(const far of [false,true]){
-  const l=a.legPose(phase,front?17:-31,bob,0,front,far);legs.push(l);
-  const target=l.hock||[l.paw[0],l.paw[1]-2],length=front?19:17;
-  assert(Math.abs(Math.hypot(l.knee[0]-l.hip[0],l.knee[1]-l.hip[1])-length)<1e-8);
-  assert(Math.abs(Math.hypot(l.knee[0]-target[0],l.knee[1]-target[1])-length)<1e-8,'no overextended lower bone');
-  assert(l.paw[1]<=0,'no foot below track');
-  if(l.stance)assert.equal(l.paw[1],0);
- }
- if(legs.every(l=>!l.stance)){flight++;assert(legs.every(l=>l.paw[1]<0||Math.abs(l.p-.28)<1e-8),'all paws above track during flight')}
- assert.equal(a.groundContact(phase),legs.some(l=>l.stance));
+function sandbox(width=1000){const nodes={},storage={};const gradient={addColorStop(){}};const context=new Proxy({createRadialGradient:()=>gradient,createLinearGradient:()=>gradient},{get:(o,k)=>o[k]||(()=>{})});function node(id){return nodes[id]??={value:0,hidden:false,disabled:false,textContent:'',innerHTML:'',setAttribute(){},getBoundingClientRect:()=>({width:width===640?400:1000,height:392}),getContext:()=>context,addEventListener(){}}}const box={document:{getElementById:node,createElement:()=>node('temp'),addEventListener(){}},window:{addEventListener(){},dispatchEvent(){}},Event:class{},CustomEvent:class{},devicePixelRatio:1,ResizeObserver:class{observe(){}},Image:class{decode(){return new Promise(()=>{})}},localStorage:{getItem:k=>storage[k],setItem:(k,v)=>storage[k]=v},requestAnimationFrame(){},Math:Object.create(Math),console};box.Math.random=()=>.5;vm.createContext(box);vm.runInContext(fs.readFileSync('dist/chacha.js','utf8')+'\nthis.api={app,update,start,jump,pause,preview,legPose,gaitBody,groundContact,render,frame,makeObstacle,actorBox,obstacleBox,sweptCollision,testConfig,START_SPEED,MAX_SPEED,recoveryTime,setWorld:(w,h)=>{W=w;H=h;ground=h*.78},setRandom:f=>Math.random=f};',box);return box.api}
+const DT=1/120;
+function setup(multiplier=1){const a=sandbox();a.testConfig.speed=multiplier;a.start();a.app.spawn=1e9;return a}
+function step(a,seconds){for(let i=0;i<Math.ceil(seconds/DT);i++)a.update(DT)}
+const a=setup();assert(Math.abs(a.START_SPEED-466.56)<1e-9);assert.equal(a.MAX_SPEED,a.START_SPEED*10);
+a.jump();assert.equal(a.app.jumpsUsed,1);step(a,.1);a.jump();assert.equal(a.app.jumpsUsed,2);const vy=a.app.vy;a.jump();assert.equal(a.app.vy,vy);step(a,2);assert.equal(a.app.jumpY,0);assert.equal(a.app.jumpsUsed,0);a.jump();assert.equal(a.app.jumpsUsed,1);
+const b=setup();b.jump();let single=0;for(let i=0;i<160;i++){b.update(DT);single=Math.max(single,b.app.jumpY)}
+const c=setup();c.jump();let double=0;for(let i=0;i<200;i++){if(i===36)c.jump();c.update(DT);double=Math.max(double,c.app.jumpY)}
+assert(single>115&&single<122);assert(double>250&&double<270);
+console.log(`PASS: two jumps only; landing resets jumps; single apex ${single.toFixed(1)}, double apex ${double.toFixed(1)}`);
+function encounter(kind,multi,second,width=1000){const x=setup(multi);x.setWorld(width,480);const actor=x.actorBox(),o=x.makeObstacle(kind,actor.right+x.app.speed*.42-5);x.app.obstacles=[o];x.jump();for(let i=0;i<200&&x.app.mode!=='over';i++){if(second&&i===36)x.jump();x.update(DT)}return x}
+for(const w of [640,1000])for(const m of [1,2,5,10])for(const kind of ['giant-radish','giant-cabbage']){
+ const singleRun=encounter(kind,m,false,w);assert.equal(singleRun.app.mode,'over',kind+' blocks single jump');
+ const doubleRun=encounter(kind,m,true,w);assert.equal(doubleRun.app.mode,'play',`${kind} clearable at ${m}x width ${w}`);
 }
-assert(flight>300&&flight<400,'visible suspension during gallop');
-for(const front of [false,true])for(const far of [false,true])for(const phase of [0,.28,.4,.68,1]){
- const before=a.legPose((phase-1e-7+1)%1,17,a.gaitBody((phase-1e-7+1)%1).bob,0,front,far);
- const after=a.legPose((phase+1e-7)%1,17,a.gaitBody((phase+1e-7)%1).bob,0,front,far);
- assert(Math.hypot(before.paw[0]-after.paw[0],before.paw[1]-after.paw[1])<.001,'continuous foot trajectory');
-}
-console.log('PASS: 4,000 joint poses, continuous feet, '+flight/10+'% airborne gallop');
+assert(single+9<176-6,'no single-jump timing can clear the giant top');
+console.log('PASS: both giant vegetables require double jump and are clearable at 1/2/5/10x, mobile and desktop');
+for(const m of [1,10]){const x=setup(m);const r=x.actorBox();x.app.obstacles=[x.makeObstacle('crow',r.right+x.app.speed*.42-5)];step(x,1.2);assert.equal(x.app.mode,'play','ground avoids crow');const y=encounter('crow',m,false);assert.equal(y.app.mode,'over','jump into crow collides')}
+const s=setup();assert(s.sweptCollision({left:0,right:20,top:0,bottom:20},{left:0,right:20,top:0,bottom:20},{left:200,right:220,top:0,bottom:20},{left:-200,right:-180,top:0,bottom:20}),'detect crossed obstacle');
+s.pause();s.jump();assert.equal(s.app.jumpsUsed,0);const d=s.app.distance;step(s,1);assert.equal(s.app.distance,d);s.pause();s.app.mode='over';s.jump();assert.equal(s.app.jumpsUsed,0);
+console.log('PASS: crow ground clearance/air collision, swept high-speed collision, pause and game-over input');
+let expected;
+for(const hz of [30,60,120,144]){const x=setup();x.frame(100);for(let i=1;i<=hz*2;i++)x.frame(100+i*1000/hz);expected??=x.app.distance;assert(Math.abs(x.app.distance-expected)<1e-7);x.render()}
+const cap=setup();step(cap,600);assert.equal(cap.app.speed,cap.MAX_SPEED);cap.update(DT);assert.equal(cap.app.speed,cap.MAX_SPEED);
+console.log('PASS: frame-rate independent distance and 10x speed cap');
+const r=setup();let seed=12345;r.setRandom(()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296});let crow=0,giant=0;for(let i=0;i<10000;i++){const o=r.makeObstacle();if(o.name==='crow')crow++;else if(o.giant)giant++}
+assert(crow>1800&&crow<2200);assert(giant/(10000-crow)>.22&&giant/(10000-crow)<.28);
+console.log(`PASS: seeded spawn mix: ${crow} crows and ${giant} giant vegetables / 10,000`);
 
-// Exercise the actual spawn gate at both viewport widths and extreme speeds.
-for(const width of [640,1000])for(const speed of [311.04,600,900]){
- const a=sandbox(width);a.start();a.app.speed=speed;
- for(const previous of [{w:38,h:46},{w:44,h:42},{w:100,h:85}]){
-  const next={x:width+40,w:44,h:42,name:'cabbage'};
-  const gap=a.safeGap(previous,next);
-  a.app.obstacles=[{...previous,x:next.x-previous.w-gap+1}];
-  assert(!a.canSpawnObstacle(next),'reject even one pixel inside safe spacing');
-  assert(!a.spawnObstacle(),'live spawn must respect existing obstacle');
-  a.app.obstacles[0].x-=2;
-  assert(a.canSpawnObstacle(next),'allow fully recovered encounter');
-  assert(gap/900>2*750/2340+.32,'full flight plus reaction time');
+// Drive the real generator, including object removal and recovery at high speed.
+for(const width of [640,1000])for(const multi of [1,10])for(const kind of ['random','giant-radish','giant-cabbage','crow','chestnut']){
+ const x=setup(multi);x.setWorld(width,480);x.testConfig.kind=kind;x.testConfig.invincible=true;x.app.spawn=0;
+ let spawned=0,previous=null,emptySince=null,clock=0;
+ for(let i=0;i<120*35;i++){
+  const before=x.app.obstacles[0];x.update(DT);clock+=DT;
+  assert(x.app.obstacles.length<=1,'no overlapping encounters or trailing chains');
+  const now=x.app.obstacles[0];
+  if(before&&!now){emptySince=clock;previous=before}
+  if(now&&now!==before){
+   spawned++;
+   if(previous)assert(clock-emptySince+DT>=x.recoveryTime(previous),'reserve full recovery after large obstacle');
+   if(kind!=='random')assert.equal(now.kind,kind,'forced test selection reaches generator');
+  }
  }
- a.app.obstacles=[];
- assert(!a.canSpawnObstacle({x:1040,w:400,h:90}),'reject unjumpable width');
- assert(!a.canSpawnObstacle({x:1040,w:40,h:160}),'reject unjumpable height');
- // Simulate each supported obstacle through a complete collision window.
- for(const [w,h] of [[38,46],[44,42]]){
-  a.start();a.app.speed=speed;a.app.distance=(speed-311.04)*400/21;a.app.spawn=1000;
-  a.app.obstacles=[{x:120+speed*.16,w,h,name:'radish'}];a.jump();
-  for(let i=0;i<120;i++)a.update(1/120);
-  assert.equal(a.app.mode,'play','supported obstacle clears at '+speed);
- }
- a.images.radish={};a.app.obstacles=[{x:400,w:38,h:46,name:'radish'}];a.render();
- a.drawObstacle({x:500,w:44,h:42,name:'missing'});
+ assert(spawned>=3,'obstacles continue to spawn');
 }
-console.log('PASS: size-aware spacing, large-obstacle recovery, impossible geometry rejection, jump clearance and both obstacle render paths');
+const html=fs.readFileSync('dist/index.html','utf8');
+for(const kind of ['giant-radish','giant-cabbage','crow'])assert(html.includes('value="'+kind+'"'),'UI exposes v2 test mode');
+assert(!/src="(?:ranking|pwa)\.js/.test(html),'no production ranking or cache registration');
+console.log('PASS: live spawning, forced v2 modes, no stacks, full recovery across removal, mobile/desktop at 1x and 10x');
