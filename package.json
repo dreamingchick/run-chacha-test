@@ -1,0 +1,14 @@
+{
+  "name": "run-chacha",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "build": "python scripts/restore-assets.py",
+    "test": "node check.cjs",
+    "check:release": "node release-check.cjs",
+    "check:ranking": "node ranking-check.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

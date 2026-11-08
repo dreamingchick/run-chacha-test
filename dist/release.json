@@ -1,0 +1,23 @@
+{
+  "version": "1.3.1-test",
+  "cache": "chacha-release-1.3.1-countryside",
+  "files": {
+    "assets/apple-touch-icon.png": "8c04d08f591994d1e6522858eedfd1fc7af44f1e91a8f063a290f9b1bd0b88d7",
+    "assets/cabbage.jpg": "018e6c6832190b994972878364bfd831106735f0804c00182eef658e4a085369",
+    "assets/chacha-gallop-sheet.png": "e0b78829201ecc3260ad3985cdde9ab11eb31253e0d3178147f83222f2f24965",
+    "assets/chacha-run-sheet.png": "04726a1d16989cc317c2f38d4d1ac6e5af01c855ea3f90ac094067a4da306de8",
+    "assets/chowRun.jpg": "fceb3ee08d32a2bcddd4e36ec98c74f407ef6e75cd16d91c672fa8954e3af33a",
+    "assets/icon-192.png": "30f138659f9930a418523606ca2e9b86f5ab01e94dd92669c9e4e21b9c154f4b",
+    "assets/icon-512.png": "d59f49aaf9caa2f7527d1b48b2c830fd36a098fdca1cf0b7d679a12395e29463",
+    "assets/icon-maskable.png": "f575d1419dd850aa365f78f797885d957fbb3b892db8e08e4a77c40a70fd9a17",
+    "assets/radish.jpg": "882fdce17977dfd44280b2081c64f1df0e1d3761ddd44f150d3bd953f510f4bd",
+    "chacha.js": "4706eb6bf85354d05eba2e40933c9c580659f21f52f4ad3ccb29c287fad75fa9",
+    "index.html": "cda458adb76ae63f6d8438b19814f06bfcd71a52fe794936b4b57d99c0608aff",
+    "manifest.webmanifest": "4fccd65e1d59e50558b94c0c5139f7392f32cca41f1b2f501fe3167cd2e80fa2",
+    "play.html": "cda458adb76ae63f6d8438b19814f06bfcd71a52fe794936b4b57d99c0608aff",
+    "pwa.js": "86cb68c50a4b63a1c762f9496e200e68762c6937675a594c4baf8234c0e3e45c",
+    "ranking.js": "92c89431734b3f43d46464eada7e7a72d7350592273df761777610b4c1187bf0",
+    "style.css": "403077f3c03fa49be6bc545c0da42932305786f4bb6e22508b83a0d75e18d3cf",
+    "sw.js": "5f09e1307af499ff9ed931e2b1e2cf6c5983bc867195b6864e32c3c85bcfb58c"
+  }
+}
